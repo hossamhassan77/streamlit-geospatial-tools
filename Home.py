@@ -9,5 +9,5 @@ st.set_page_config(
     page_icon="🌍",
     layout="wide",
 )
-st.markdown("# Main page")
 st.sidebar.markdown("# Main page")
+st.markdown("# Geospatial Applications")

@@ -1,7 +1,3 @@
-""" 
-
-"""
-
 import streamlit as st
 import pandas as pd
 import geopandas as gpd
@@ -9,97 +5,154 @@ import folium
 from streamlit_folium import st_folium
 from folium.plugins import MarkerCluster
 
-st.set_page_config(page_title="data-visulization", layout="wide", page_icon="🗺️")
-st.sidebar.markdown("# Vector data visulization 🛠️")
 
-# upload file
-uploaded_file = st.file_uploader(
-    "Upload a file", type=["csv", "xlsx", "zip", "geojson"]
-)
-if uploaded_file:
-    uploaded_file = uploaded_file.name
-st.write("Or")
-uploaded_file = st.text_input("Enter URL for vector dataset: ", "https://raw.githubusercontent.com/LonnyGomes/CountryGeoJSONCollection/master/geojson/EGY.geojson")
-m = folium.Map(
-    [0, 0],
-    zoom_start=2
-)
-# Adding named basemaps
-folium.TileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    name="ESRI Satellite",
-    attr="ESRI",
-).add_to(m)
-folium.TileLayer('CartoDB dark_matter', name='CartoDB Dark Matter').add_to(m)
-marker_cluster = MarkerCluster().add_to(m)
-if uploaded_file is not None:
-    extension = uploaded_file.split(".")[-1]
-    if extension in {"csv", "xlsx"}:
-        if extension == "csv":
-            data_frame = pd.read_csv(uploaded_file)
+class GeoDataVisualizer:
+    def __init__(self):
+        self.map = folium.Map([0, 0], zoom_start=2)
+        self.marker_cluster = MarkerCluster().add_to(self.map)
+        self.uploaded_file = None
+        self.data_frame = None
+        self.latitude_column = None
+        self.longitude_column = None
+        self._setup_page()
+
+    def _setup_page(self):
+        st.set_page_config(
+            page_title="data-visualization", layout="wide", page_icon="🗺️"
+        )
+        st.sidebar.markdown("# Vector data visualization 🛠️")
+        self.uploaded_file = self._get_uploaded_file()
+        self._add_basemaps()
+        self._load_data()
+
+    def _get_uploaded_file(self):
+        file = st.file_uploader("Upload a file", type=["csv", "xlsx", "zip", "geojson"])
+        if file:
+            return file
+        st.write("Or")
+        return st.selectbox(
+            "Choose an option",
+            [
+                "https://raw.githubusercontent.com/incubated-geek-cc/xy-to-latlng-convertor/main/data/CHASClinics_Output.csv",
+                "https://raw.githubusercontent.com/LonnyGomes/CountryGeoJSONCollection/master/geojson/EGY.geojson",
+                "https://raw.githubusercontent.com/openlayers/openlayers/main/examples/data/geojson/vienna-streets.geojson",
+            ],
+        )
+
+    def _add_basemaps(self):
+        folium.TileLayer(
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            name="ESRI Satellite",
+            attr="ESRI",
+        ).add_to(self.map)
+        folium.TileLayer("CartoDB dark_matter", name="CartoDB Dark Matter").add_to(
+            self.map
+        )
+
+    def _load_data(self):
+        if isinstance(self.uploaded_file, str):  # Handle URL input
+            self._load_data_from_url(self.uploaded_file)
+        elif self.uploaded_file is not None:  # Handle file upload
+            extension = self.uploaded_file.name.split(".")[-1]
+            if extension in {"csv", "xlsx"}:
+                self._load_tabular_data(extension)
+            else:
+                self._load_geospatial_data()
+            self._display_data()
+            folium.LayerControl().add_to(self.map)
+            st_folium(self.map, width=1000)
+
+    def _load_data_from_url(self, url):
+        extension = url.split(".")[-1]
+        if extension == "geojson":
+            self.data_frame = gpd.read_file(url)
+            self._display_data()
+            self._fit_map_to_bounds(self.data_frame.total_bounds)
+            folium.GeoJson(self.data_frame, name="Loaded data").add_to(self.map)
+            folium.LayerControl().add_to(self.map)
+            st_folium(self.map, width=1000)
+        elif extension in {"csv", "xlsx"}:
+            self._load_tabular_data(extension)
+            self._display_data()
+            st_folium(self.map, width=1000)
         else:
-            data_frame = pd.read_excel(uploaded_file)
+            st.write("Unsupported URL format or unable to load data.")
+
+    def _load_tabular_data(self, extension):
+        if extension == "csv":
+            self.data_frame = pd.read_csv(self.uploaded_file)
+        else:
+            self.data_frame = pd.read_excel(self.uploaded_file)
+
+        self.latitude_column, self.longitude_column = self._select_lat_long_columns()
+
+        self.data_frame = gpd.GeoDataFrame(
+            self.data_frame,
+            geometry=gpd.points_from_xy(
+                self.data_frame[self.longitude_column],
+                self.data_frame[self.latitude_column],
+            ),
+            crs="wgs84",
+        ).dropna(subset=[self.longitude_column, self.latitude_column])
+
+        self._fit_map_to_bounds(self.data_frame.total_bounds)
+        self._add_markers()
+
+    def _select_lat_long_columns(self):
         col1, col2, col3, col4 = st.columns(4)
+
         with col1:
-            column_guess = data_frame.columns.str.contains("lat|latitude", case=False)
-            index = 0
-            if len(data_frame.columns[column_guess].tolist()) != 0:
-                latitude_guess = data_frame.columns[column_guess].tolist()[0]
-                index = data_frame.columns.get_loc(latitude_guess)
-            lat = st.selectbox(
-                "Choose latitude column:", data_frame.columns, index=index
+            column_guess = self.data_frame.columns.str.contains(
+                "lat|latitude", case=False
+            )
+            lat_index = 0
+            if len(self.data_frame.columns[column_guess].tolist()) != 0:
+                latitude_guess = self.data_frame.columns[column_guess].tolist()[0]
+                lat_index = self.data_frame.columns.get_loc(latitude_guess)
+            latitude_column = st.selectbox(
+                "Choose latitude column:", self.data_frame.columns, index=lat_index
             )
         with col2:
-            column_guess = data_frame.columns.str.contains(
+            column_guess = self.data_frame.columns.str.contains(
                 "lng|long|longitude", case=False
             )
-            index = 0
-            if len(data_frame.columns[column_guess].tolist()) != 0:
-                longitude_guess = data_frame.columns[column_guess].tolist()[0]
-                index = data_frame.columns.get_loc(longitude_guess)
-            lng = st.selectbox(
-                "Choose longitude column:", data_frame.columns, index=index
+            lng_index = 0
+            if len(self.data_frame.columns[column_guess].tolist()) != 0:
+                longitude_guess = self.data_frame.columns[column_guess].tolist()[0]
+                lng_index = self.data_frame.columns.get_loc(longitude_guess)
+            longitude_column = st.selectbox(
+                "Choose longitude column:", self.data_frame.columns, index=lng_index
             )
-        data_frame = gpd.GeoDataFrame(
-            data_frame,
-            geometry=gpd.points_from_xy(data_frame[lng], data_frame[lat]),
-            crs="wgs84",
-        ).dropna(subset=[lng, lat])
-        bounds = data_frame.total_bounds
-        m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
-        # Optionally, add markers for each point in the GeoDataFrame
-        for _, row in data_frame.iterrows():
+
+        return latitude_column, longitude_column
+
+    def _load_geospatial_data(self):
+        self.data_frame = gpd.read_file(self.uploaded_file)
+        self._fit_map_to_bounds(self.data_frame.total_bounds)
+        folium.GeoJson(self.data_frame, name="Loaded data").add_to(self.map)
+
+    def _fit_map_to_bounds(self, bounds):
+        self.map.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
+
+    def create_popup_html(self, properties):
+        """ """
+        html = "<div style='max-height: 200px; overflow-y: auto; font-size: 200%;'>"
+        for key, value in properties.items():
+            html += f"<b>{key}</b>: {value}"
+            html += "<br>"
+        return html
+
+    def _add_markers(self):
+        for _, row in self.data_frame.iterrows():
+            popup_html = self.create_popup_html(row[:-1])
             folium.Marker(
-                location=[row[lat], row[lng]],
-            ).add_to(marker_cluster)
-    else:
-        data_frame = gpd.read_file(uploaded_file, crs="wgs84")
-        bounds = data_frame.total_bounds
-        m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
-        folium.GeoJson(data_frame, name="Loaded data").add_to(m)
-    st.dataframe(data_frame.drop(columns="geometry"))
-folium.LayerControl().add_to(m)
-st_folium(m, width=1000)
-# input_name = st.text_input("Type you name:", key="name")
-# data_frame = pd.read_csv(r"data/raptor_nest.csv").dropna(
-#     subset=["lat_y_dd", "long_x_dd"]
-# )
-# options = ["Select column"]
-# unique_values = ["Select value"]
-# for column in data_frame.columns:
-#     options.append(column)
-# input_column = st.selectbox("Choose column:", options)
-# if input_column != options[0]:
-#     for value in data_frame[input_column].unique():
-#         unique_values.append(value)
-#     if data_frame[input_column].dtype == "O":
-#         uvalue = st.selectbox("Select value:", unique_values, index=0)
-#     else:
-#         uvalue = st.slider(
-#             "Select a range of values",
-#             data_frame[input_column].min(),
-#             data_frame[input_column].max(),
-#             (data_frame[input_column].min(), data_frame[input_column].max()),
-#         )
-#     if uvalue != unique_values[0]:
-#         data_frame = data_frame[data_frame[input_column] == uvalue]
+                location=[row[self.latitude_column], row[self.longitude_column]],
+                popup=folium.Popup(popup_html, max_width=300),
+            ).add_to(self.marker_cluster)
+
+    def _display_data(self):
+        st.dataframe(self.data_frame.drop(columns="geometry"))
+
+
+if __name__ == "__main__":
+    GeoDataVisualizer()
