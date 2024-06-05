@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import geopandas as gpd
 import folium
-from streamlit_folium import st_folium
+from streamlit_folium import folium_static
 from folium.plugins import MarkerCluster
 
 
@@ -60,7 +60,7 @@ class GeoDataVisualizer:
                 self._load_geospatial_data()
             self._display_data()
             folium.LayerControl().add_to(self.map)
-            st_folium(self.map, width=1000)
+            folium_static(self.map, width=1000)
 
     def _load_data_from_url(self, url):
         extension = url.split(".")[-1]
@@ -70,11 +70,11 @@ class GeoDataVisualizer:
             self._fit_map_to_bounds(self.data_frame.total_bounds)
             folium.GeoJson(self.data_frame, name="Loaded data").add_to(self.map)
             folium.LayerControl().add_to(self.map)
-            st_folium(self.map, width=1000)
+            folium_static(self.map, width=1000)
         elif extension in {"csv", "xlsx"}:
             self._load_tabular_data(extension)
             self._display_data()
-            st_folium(self.map, width=1000)
+            folium_static(self.map, width=1000)
         else:
             st.write("Unsupported URL format or unable to load data.")
 
