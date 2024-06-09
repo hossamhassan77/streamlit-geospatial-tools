@@ -1,3 +1,8 @@
+"""
+
+"""
+
+import json
 import streamlit as st
 import pandas as pd
 import geopandas as gpd
@@ -7,6 +12,8 @@ from folium.plugins import MarkerCluster
 
 
 class GeoDataVisualizer:
+    """ """
+
     def __init__(self):
         self.map = folium.Map([0, 0], zoom_start=2)
         self.marker_cluster = MarkerCluster().add_to(self.map)
@@ -66,9 +73,25 @@ class GeoDataVisualizer:
         extension = url.split(".")[-1]
         if extension == "geojson":
             self.data_frame = gpd.read_file(url)
+            json_data_frame = json.loads(self.data_frame.to_json())
             self._display_data()
             self._fit_map_to_bounds(self.data_frame.total_bounds)
-            folium.GeoJson(self.data_frame, name="Loaded data").add_to(self.map)
+            # Check if 'features' key exists in geojson_data
+            if 'features' in json_data_frame and len(json_data_frame['features']) > 0:
+                # Extract all property keys from the first feature
+                property_keys = list(json_data_frame['features'][0]['properties'].keys())
+
+                # Add GeoJSON layer with popup functionality
+                folium.GeoJson(
+                    self.data_frame,
+                    popup=folium.GeoJsonPopup(
+                        fields=property_keys,
+                        aliases=property_keys,
+                        localize=True,
+                    )
+                ).add_to(self.map)
+            else:
+                folium.GeoJson(self.data_frame, name="Loaded data").add_to(self.map)
             folium.LayerControl().add_to(self.map)
             folium_static(self.map, width=1000)
         elif extension in {"csv", "xlsx"}:
@@ -99,7 +122,7 @@ class GeoDataVisualizer:
         self._add_markers()
 
     def _select_lat_long_columns(self):
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, _, _ = st.columns(4)
 
         with col1:
             column_guess = self.data_frame.columns.str.contains(
@@ -128,19 +151,28 @@ class GeoDataVisualizer:
 
     def _load_geospatial_data(self):
         self.data_frame = gpd.read_file(self.uploaded_file)
+        json_data_frame = json.loads(self.data_frame.to_json())
         self._fit_map_to_bounds(self.data_frame.total_bounds)
-        folium.GeoJson(self.data_frame, name="Loaded data").add_to(self.map)
+        if 'features' in json_data_frame and len(json_data_frame['features']) > 0:
+            # Extract all property keys from the first feature
+            property_keys = list(json_data_frame['features'][0]['properties'].keys())
+
+            # Add GeoJSON layer with popup functionality
+            folium.GeoJson(
+                self.data_frame,
+                popup=folium.GeoJsonPopup(
+                    fields=property_keys,
+                    aliases=property_keys,
+                    localize=True,
+                )
+            ).add_to(self.map)
+        else:
+            folium.GeoJson(self.data_frame, name="Loaded data").add_to(self.map)
+        folium.LayerControl().add_to(self.map)
+        folium_static(self.map, width=1000)
 
     def _fit_map_to_bounds(self, bounds):
         self.map.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
-
-    def create_popup_html(self, properties):
-        """ """
-        html = "<div style='max-height: 200px; overflow-y: auto; font-size: 200%;'>"
-        for key, value in properties.items():
-            html += f"<b>{key}</b>: {value}"
-            html += "<br>"
-        return html
 
     def _add_markers(self):
         for _, row in self.data_frame.iterrows():
@@ -152,6 +184,14 @@ class GeoDataVisualizer:
 
     def _display_data(self):
         st.dataframe(self.data_frame.drop(columns="geometry"))
+
+    def create_popup_html(self, properties):
+        """ """
+        html = "<div style='max-height: 200px; overflow-y: auto; font-size: 200%;'>"
+        for key, value in properties.items():
+            html += f"<b>{key}</b>: {value}"
+            html += "<br>"
+        return html
 
 
 if __name__ == "__main__":
