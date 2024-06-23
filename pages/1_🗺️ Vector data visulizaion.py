@@ -104,7 +104,7 @@ class GeoDataVisualizer:
         if extension == "csv":
             self.data_frame = pd.read_csv(self.uploaded_file)
         else:
-            self.data_frame = pd.read_excel(self.uploaded_file)
+            self.data_frame = pd.read_excel(self.uploaded_file, engine='openpyxl')
 
         self.latitude_column, self.longitude_column = self._select_lat_long_columns()
 
