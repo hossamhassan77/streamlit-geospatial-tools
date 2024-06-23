@@ -52,7 +52,7 @@ class GeoDataVisualizer:
             name="ESRI Satellite",
             attr="ESRI",
         ).add_to(self.map)
-        folium.TileLayer("CartoDB dark_matter", name="CartoDB Dark Matter").add_to(
+        folium.TileLayer("CartoDB dark_matter", name="CartoDB Dark").add_to(
             self.map
         )
 
@@ -65,9 +65,8 @@ class GeoDataVisualizer:
                 self._load_tabular_data(extension)
             else:
                 self._load_geospatial_data()
-            self._display_data()
-            folium.LayerControl().add_to(self.map)
-            folium_static(self.map, width=1000)
+            # self._display_data()
+            # folium_static(self.map, width=1000)
 
     def _load_data_from_url(self, url):
         extension = url.split(".")[-1]
@@ -88,16 +87,16 @@ class GeoDataVisualizer:
                         fields=property_keys,
                         aliases=property_keys,
                         localize=True,
+                        style=(
+                        "max-height: 200px; overflow-y: auto;"
+                    ),
                     )
                 ).add_to(self.map)
             else:
                 folium.GeoJson(self.data_frame, name="Loaded data").add_to(self.map)
-            folium.LayerControl().add_to(self.map)
             folium_static(self.map, width=1000)
         elif extension in {"csv", "xlsx"}:
             self._load_tabular_data(extension)
-            self._display_data()
-            folium_static(self.map, width=1000)
         else:
             st.write("Unsupported URL format or unable to load data.")
 
@@ -119,7 +118,10 @@ class GeoDataVisualizer:
         ).dropna(subset=[self.longitude_column, self.latitude_column])
 
         self._fit_map_to_bounds(self.data_frame.total_bounds)
+        self._display_data()
         self._add_markers()
+        folium.LayerControl().add_to(self.map)
+        folium_static(self.map, width=1000)
 
     def _select_lat_long_columns(self):
         col1, col2, _, _ = st.columns(4)
@@ -152,6 +154,7 @@ class GeoDataVisualizer:
     def _load_geospatial_data(self):
         self.data_frame = gpd.read_file(self.uploaded_file)
         json_data_frame = json.loads(self.data_frame.to_json())
+        self._display_data()
         self._fit_map_to_bounds(self.data_frame.total_bounds)
         if 'features' in json_data_frame and len(json_data_frame['features']) > 0:
             # Extract all property keys from the first feature
@@ -164,6 +167,9 @@ class GeoDataVisualizer:
                     fields=property_keys,
                     aliases=property_keys,
                     localize=True,
+                    style=(
+                    "max-height: 200px; overflow-y: auto;"
+                ),
                 )
             ).add_to(self.map)
         else:
@@ -187,7 +193,7 @@ class GeoDataVisualizer:
 
     def create_popup_html(self, properties):
         """ """
-        html = "<div style='max-height: 200px; overflow-y: auto; font-size: 200%;'>"
+        html = "<div style='max-height: 200px; overflow-y: auto;'>"
         for key, value in properties.items():
             html += f"<b>{key}</b>: {value}"
             html += "<br>"
