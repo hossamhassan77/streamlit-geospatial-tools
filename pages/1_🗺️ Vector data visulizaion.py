@@ -52,9 +52,7 @@ class GeoDataVisualizer:
             name="ESRI Satellite",
             attr="ESRI",
         ).add_to(self.map)
-        folium.TileLayer("CartoDB dark_matter", name="CartoDB Dark").add_to(
-            self.map
-        )
+        folium.TileLayer("CartoDB dark_matter", name="CartoDB Dark").add_to(self.map)
 
     def _load_data(self):
         if isinstance(self.uploaded_file, str):  # Handle URL input
@@ -65,35 +63,41 @@ class GeoDataVisualizer:
                 self._load_tabular_data(extension)
             else:
                 self._load_geospatial_data()
-            # self._display_data()
-            # folium_static(self.map, width=1000)
 
     def _load_data_from_url(self, url):
         extension = url.split(".")[-1]
+        last_part = url.split('/')[-1]
+        layer_name = last_part.split('.')[0]
         if extension == "geojson":
             self.data_frame = gpd.read_file(url)
             json_data_frame = json.loads(self.data_frame.to_json())
             self._display_data()
             self._fit_map_to_bounds(self.data_frame.total_bounds)
             # Check if 'features' key exists in geojson_data
-            if 'features' in json_data_frame and len(json_data_frame['features']) > 0:
+            if "features" in json_data_frame and len(json_data_frame["features"]) > 0:
                 # Extract all property keys from the first feature
-                property_keys = list(json_data_frame['features'][0]['properties'].keys())
-
+                property_keys = list(
+                    json_data_frame["features"][0]["properties"].keys()
+                )
                 # Add GeoJSON layer with popup functionality
                 folium.GeoJson(
                     self.data_frame,
+                    name=layer_name,
+                    zoom_on_click=True,
+                    highlight_function= lambda feature: {
+                        "fillColor": ("dark gray")},
                     popup=folium.GeoJsonPopup(
                         fields=property_keys,
                         aliases=property_keys,
                         localize=True,
-                        style=(
-                        "max-height: 200px; overflow-y: auto;"
+                        style=("max-height: 200px; overflow-y: auto;"),
                     ),
-                    )
                 ).add_to(self.map)
             else:
-                folium.GeoJson(self.data_frame, name="Loaded data").add_to(self.map)
+                folium.GeoJson(
+                    self.data_frame, name=layer_name, zoom_on_click=True
+                ).add_to(self.map)
+            folium.LayerControl().add_to(self.map)
             folium_static(self.map, width=1000)
         elif extension in {"csv", "xlsx"}:
             self._load_tabular_data(extension)
@@ -104,7 +108,7 @@ class GeoDataVisualizer:
         if extension == "csv":
             self.data_frame = pd.read_csv(self.uploaded_file)
         else:
-            self.data_frame = pd.read_excel(self.uploaded_file, engine='openpyxl')
+            self.data_frame = pd.read_excel(self.uploaded_file, engine="openpyxl")
 
         self.latitude_column, self.longitude_column = self._select_lat_long_columns()
 
@@ -121,6 +125,7 @@ class GeoDataVisualizer:
         self._display_data()
         self._add_markers()
         folium.LayerControl().add_to(self.map)
+
         folium_static(self.map, width=1000)
 
     def _select_lat_long_columns(self):
@@ -153,27 +158,31 @@ class GeoDataVisualizer:
 
     def _load_geospatial_data(self):
         self.data_frame = gpd.read_file(self.uploaded_file)
+        layer_name = self.uploaded_file.name.split(".")[:-1][0]
         json_data_frame = json.loads(self.data_frame.to_json())
         self._display_data()
         self._fit_map_to_bounds(self.data_frame.total_bounds)
-        if 'features' in json_data_frame and len(json_data_frame['features']) > 0:
+        if "features" in json_data_frame and len(json_data_frame["features"]) > 0:
             # Extract all property keys from the first feature
-            property_keys = list(json_data_frame['features'][0]['properties'].keys())
-
+            property_keys = list(json_data_frame["features"][0]["properties"].keys())
             # Add GeoJSON layer with popup functionality
             folium.GeoJson(
                 self.data_frame,
+                name=layer_name,
+                zoom_on_click=True,
+                highlight_function= lambda feature: {
+                        "fillColor": ("dark gray")},
                 popup=folium.GeoJsonPopup(
                     fields=property_keys,
                     aliases=property_keys,
                     localize=True,
-                    style=(
-                    "max-height: 200px; overflow-y: auto;"
+                    style=("max-height: 200px; overflow-y: auto;"),
                 ),
-                )
             ).add_to(self.map)
         else:
-            folium.GeoJson(self.data_frame, name="Loaded data").add_to(self.map)
+            folium.GeoJson(
+                self.data_frame, name=layer_name, zoom_on_click=True
+            ).add_to(self.map)
         folium.LayerControl().add_to(self.map)
         folium_static(self.map, width=1000)
 
