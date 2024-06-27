@@ -27,7 +27,7 @@ class GeoDataVisualizer:
         st.set_page_config(
             page_title="data-visualization", layout="wide", page_icon="🗺️"
         )
-        st.sidebar.markdown("# Vector data visualization 🛠️")
+        st.sidebar.markdown("# Vector data visualization 🗺️")
         self.uploaded_file = self._get_uploaded_file()
         self._add_basemaps()
         self._load_data()
