@@ -10,8 +10,10 @@ import folium
 from streamlit_folium import folium_static
 from folium.plugins import MarkerCluster
 
+
 class GeoDataVisualizer:
     """ """
+
     def __init__(self):
         self.map = folium.Map([0, 0], zoom_start=2)
         self.marker_cluster = MarkerCluster().add_to(self.map)
@@ -22,9 +24,7 @@ class GeoDataVisualizer:
         self._setup_page()
 
     def _setup_page(self):
-        st.set_page_config(
-            page_title="data-manipulation", layout="wide", page_icon="🛠️"
-        )
+        st.set_page_config(page_title="data-manipulation", layout="wide", page_icon="🛠️")
         st.sidebar.markdown("# Vector data manipulation 🛠️")
         self.uploaded_file = self._get_uploaded_file()
         self._add_basemaps()
@@ -65,8 +65,8 @@ class GeoDataVisualizer:
 
     def _load_data_from_url(self, url):
         extension = url.split(".")[-1]
-        last_part = url.split('/')[-1]
-        layer_name = last_part.split('.')[0]
+        last_part = url.split("/")[-1]
+        layer_name = last_part.split(".")[0]
         if extension == "geojson":
             self.data_frame = gpd.read_file(url)
             json_data_frame = json.loads(self.data_frame.to_json())
@@ -83,8 +83,7 @@ class GeoDataVisualizer:
                     self.data_frame,
                     name=layer_name,
                     zoom_on_click=True,
-                    highlight_function= lambda feature: {
-                        "fillColor": ("dark gray")},
+                    highlight_function=lambda feature: {"fillColor": ("dark gray")},
                     popup=folium.GeoJsonPopup(
                         fields=property_keys,
                         aliases=property_keys,
@@ -169,8 +168,7 @@ class GeoDataVisualizer:
                 self.data_frame,
                 name=layer_name,
                 zoom_on_click=True,
-                highlight_function= lambda feature: {
-                        "fillColor": ("dark gray")},
+                highlight_function=lambda feature: {"fillColor": ("dark gray")},
                 popup=folium.GeoJsonPopup(
                     fields=property_keys,
                     aliases=property_keys,
@@ -179,9 +177,9 @@ class GeoDataVisualizer:
                 ),
             ).add_to(self.map)
         else:
-            folium.GeoJson(
-                self.data_frame, name=layer_name, zoom_on_click=True
-            ).add_to(self.map)
+            folium.GeoJson(self.data_frame, name=layer_name, zoom_on_click=True).add_to(
+                self.map
+            )
         folium.LayerControl().add_to(self.map)
         folium_static(self.map, width=1000)
 
@@ -219,16 +217,46 @@ class GeoDataVisualizer:
             self._aggregate_data()
 
     def _filter_rows(self):
-        column_to_filter = st.sidebar.selectbox("Choose column to filter", self.data_frame.columns)
-        unique_values = self.data_frame[column_to_filter].unique()
-        selected_values = st.sidebar.multiselect("Choose values to keep", unique_values)
-        if selected_values:
-            self.data_frame = self.data_frame[self.data_frame[column_to_filter].isin(selected_values)]
-            self._update_map()
+        options = ["Select column"]
+        unique_values = ["Select value"]
+        for column in self.data_frame.columns[:-1]:
+            options.append(column)
+        input_column = st.sidebar.selectbox("Choose column:", options)
+        if input_column != options[0]:
+            for value in self.data_frame[input_column].unique():
+                unique_values.append(value)
+            if self.data_frame[input_column].dtype == "O":
+                uvalue = st.sidebar.selectbox("Select a value:", unique_values, index=0)
+                if uvalue != unique_values[0]:
+                    self.data_frame = self.data_frame[
+                        self.data_frame[input_column] == uvalue
+                    ]
+            else:
+                uvalue = st.sidebar.slider(
+                    "Select a range:",
+                    float(self.data_frame[input_column].min()),
+                    float(self.data_frame[input_column].max()),
+                    (
+                        float(self.data_frame[input_column].min()),
+                        float(self.data_frame[input_column].max()),
+                    ),
+                )
+                if uvalue != unique_values[0]:
+                    self.data_frame = self.data_frame[
+                        (self.data_frame[input_column] >= uvalue[0])
+                        &
+                        (self.data_frame[input_column] <= uvalue[1])
+                    ]
+                # print(f"==============={uvalue[0]}")
+        self._update_map()
 
     def _aggregate_data(self):
-        column_to_aggregate = st.sidebar.selectbox("Choose column to aggregate", self.data_frame.columns)
-        aggregation_function = st.sidebar.selectbox("Choose aggregation function", ["sum", "mean", "count"])
+        column_to_aggregate = st.sidebar.selectbox(
+            "Choose column to aggregate", self.data_frame.columns
+        )
+        aggregation_function = st.sidebar.selectbox(
+            "Choose aggregation function", ["sum", "mean", "count"]
+        )
         if column_to_aggregate and aggregation_function:
             if aggregation_function == "sum":
                 aggregated_data = self.data_frame[column_to_aggregate].sum()
@@ -236,16 +264,17 @@ class GeoDataVisualizer:
                 aggregated_data = self.data_frame[column_to_aggregate].mean()
             elif aggregation_function == "count":
                 aggregated_data = self.data_frame[column_to_aggregate].count()
-            st.sidebar.write(f"Aggregated {aggregation_function} of {column_to_aggregate}: {aggregated_data}")
+            st.sidebar.write(
+                f"Aggregated {aggregation_function} of {column_to_aggregate}: {aggregated_data}"
+            )
 
     def _update_map(self):
+        self._display_data()
         self.map = folium.Map([0, 0], zoom_start=2)  # Reset the map
-        self.marker_cluster = MarkerCluster().add_to(self.map)
         self._fit_map_to_bounds(self.data_frame.total_bounds)
         self._add_markers()
-        folium.LayerControl().add_to(self.map)
+        # folium.LayerControl().add_to(self.map)
         folium_static(self.map, width=1000)
-        self._display_data()
 
 if __name__ == "__main__":
     GeoDataVisualizer()
