@@ -211,12 +211,10 @@ class GeoDataVisualizer:
         st.sidebar.markdown("## Data Manipulation")
         manipulation_option = st.sidebar.selectbox(
             "Choose manipulation",
-            ["None", "Filter Rows", "Add Column", "Aggregate Data"],
+            ["None", "Filter Rows", "Aggregate Data"],
         )
         if manipulation_option == "Filter Rows":
             self._filter_rows()
-        elif manipulation_option == "Add Column":
-            self._add_column()
         elif manipulation_option == "Aggregate Data":
             self._aggregate_data()
 
@@ -227,13 +225,6 @@ class GeoDataVisualizer:
         if selected_values:
             self.data_frame = self.data_frame[self.data_frame[column_to_filter].isin(selected_values)]
             self._update_map()
-
-    def _add_column(self):
-        new_column_name = st.sidebar.text_input("New column name")
-        if new_column_name:
-            self.data_frame[new_column_name] = None  # Initialize with None or some default value
-            st.sidebar.write(f"Column '{new_column_name}' added.")
-            self._display_data()
 
     def _aggregate_data(self):
         column_to_aggregate = st.sidebar.selectbox("Choose column to aggregate", self.data_frame.columns)
