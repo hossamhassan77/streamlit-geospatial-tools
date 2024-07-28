@@ -167,6 +167,7 @@ class GeoDataManipulator:
 
     def filter_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Filter a DataFrame based on user input for object and numeric types."""
+        st.sidebar.markdown("## Data Manipulation")
         options = ["Select column"]
         unique_values = ["Select value"]
 
