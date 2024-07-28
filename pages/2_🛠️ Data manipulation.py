@@ -1,7 +1,3 @@
-"""
-
-"""
-
 import json
 import streamlit as st
 import pandas as pd
@@ -10,10 +6,7 @@ import folium
 from streamlit_folium import folium_static
 from folium.plugins import MarkerCluster
 
-
 class GeoDataVisualizer:
-    """ """
-
     def __init__(self):
         self.map = folium.Map([0, 0], zoom_start=2)
         self.marker_cluster = MarkerCluster().add_to(self.map)
@@ -24,12 +17,13 @@ class GeoDataVisualizer:
         self._setup_page()
 
     def _setup_page(self):
-        st.set_page_config(page_title="data-manipulation", layout="wide", page_icon="🛠️")
-        st.sidebar.markdown("# Vector data manipulation 🛠️")
+        st.set_page_config(
+            page_title="data-visualization", layout="wide", page_icon="🗺️"
+        )
+        st.sidebar.markdown("# Vector data visualization 🗺️")
         self.uploaded_file = self._get_uploaded_file()
         self._add_basemaps()
         self._load_data()
-        self._add_data_manipulation_options()
 
     def _get_uploaded_file(self):
         file = st.file_uploader("Upload a file", type=["csv", "xlsx", "zip", "geojson"])
@@ -65,38 +59,14 @@ class GeoDataVisualizer:
 
     def _load_data_from_url(self, url):
         extension = url.split(".")[-1]
-        last_part = url.split("/")[-1]
-        layer_name = last_part.split(".")[0]
+        last_part = url.split('/')[-1]
+        layer_name = last_part.split('.')[0]
         if extension == "geojson":
             self.data_frame = gpd.read_file(url)
             json_data_frame = json.loads(self.data_frame.to_json())
-            self._display_data()
+            self._apply_filters()
             self._fit_map_to_bounds(self.data_frame.total_bounds)
-            # Check if 'features' key exists in geojson_data
-            if "features" in json_data_frame and len(json_data_frame["features"]) > 0:
-                # Extract all property keys from the first feature
-                property_keys = list(
-                    json_data_frame["features"][0]["properties"].keys()
-                )
-                # Add GeoJSON layer with popup functionality
-                folium.GeoJson(
-                    self.data_frame,
-                    name=layer_name,
-                    zoom_on_click=True,
-                    highlight_function=lambda feature: {"fillColor": ("dark gray")},
-                    popup=folium.GeoJsonPopup(
-                        fields=property_keys,
-                        aliases=property_keys,
-                        localize=True,
-                        style=("max-height: 200px; overflow-y: auto;"),
-                    ),
-                ).add_to(self.map)
-            else:
-                folium.GeoJson(
-                    self.data_frame, name=layer_name, zoom_on_click=True
-                ).add_to(self.map)
-            folium.LayerControl().add_to(self.map)
-            folium_static(self.map, width=1000)
+            self._add_geojson_layer(json_data_frame, layer_name)
         elif extension in {"csv", "xlsx"}:
             self._load_tabular_data(extension)
         else:
@@ -119,8 +89,8 @@ class GeoDataVisualizer:
             crs="wgs84",
         ).dropna(subset=[self.longitude_column, self.latitude_column])
 
+        self._apply_filters()
         self._fit_map_to_bounds(self.data_frame.total_bounds)
-        self._display_data()
         self._add_markers()
         folium.LayerControl().add_to(self.map)
 
@@ -158,29 +128,9 @@ class GeoDataVisualizer:
         self.data_frame = gpd.read_file(self.uploaded_file)
         layer_name = self.uploaded_file.name.split(".")[:-1][0]
         json_data_frame = json.loads(self.data_frame.to_json())
-        self._display_data()
+        self._apply_filters()
         self._fit_map_to_bounds(self.data_frame.total_bounds)
-        if "features" in json_data_frame and len(json_data_frame["features"]) > 0:
-            # Extract all property keys from the first feature
-            property_keys = list(json_data_frame["features"][0]["properties"].keys())
-            # Add GeoJSON layer with popup functionality
-            folium.GeoJson(
-                self.data_frame,
-                name=layer_name,
-                zoom_on_click=True,
-                highlight_function=lambda feature: {"fillColor": ("dark gray")},
-                popup=folium.GeoJsonPopup(
-                    fields=property_keys,
-                    aliases=property_keys,
-                    localize=True,
-                    style=("max-height: 200px; overflow-y: auto;"),
-                ),
-            ).add_to(self.map)
-        else:
-            folium.GeoJson(self.data_frame, name=layer_name, zoom_on_click=True).add_to(
-                self.map
-            )
-        folium.LayerControl().add_to(self.map)
+        self._add_geojson_layer(json_data_frame, layer_name)
         folium_static(self.map, width=1000)
 
     def _fit_map_to_bounds(self, bounds):
@@ -194,108 +144,69 @@ class GeoDataVisualizer:
                 popup=folium.Popup(popup_html, max_width=300),
             ).add_to(self.marker_cluster)
 
-    def _display_data(self):
-        st.dataframe(self.data_frame.drop(columns="geometry"))
+    def _add_geojson_layer(self, json_data_frame, layer_name):
+        if "features" in json_data_frame and len(json_data_frame["features"]) > 0:
+            property_keys = list(json_data_frame["features"][0]["properties"].keys())
+            folium.GeoJson(
+                self.data_frame,
+                name=layer_name,
+                zoom_on_click=True,
+                highlight_function=lambda feature: {"fillColor": "dark gray"},
+                popup=folium.GeoJsonPopup(
+                    fields=property_keys,
+                    aliases=property_keys,
+                    localize=True,
+                    style="max-height: 200px; overflow-y: auto;",
+                ),
+            ).add_to(self.map)
+        else:
+            folium.GeoJson(
+                self.data_frame, name=layer_name, zoom_on_click=True
+            ).add_to(self.map)
+        folium.LayerControl().add_to(self.map)
 
-    def create_popup_html(self, properties):
-        """ """
-        html = "<div style='max-height: 200px; overflow-y: auto;'>"
-        for key, value in properties.items():
-            html += f"<b>{key}</b>: {value}"
-            html += "<br>"
-        return html
-
-    def _add_data_manipulation_options(self):
-        st.sidebar.markdown("## Data Manipulation")
-        manipulation_option = st.sidebar.selectbox(
-            "Choose manipulation",
-            ["None", "Filter Rows", "Aggregate Data"],
-        )
-        if manipulation_option == "Filter Rows":
-            self._filter_rows()
-        elif manipulation_option == "Aggregate Data":
-            self._aggregate_data()
-
-    def _filter_rows(self):
+    def filter_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Filter a DataFrame based on user input for object and numeric types."""
         options = ["Select column"]
         unique_values = ["Select value"]
-        for column in self.data_frame.columns[:-1]:
+
+        for column in df.columns:
             options.append(column)
+
         input_column = st.sidebar.selectbox("Choose column:", options)
+
         if input_column != options[0]:
-            for value in self.data_frame[input_column].unique():
-                unique_values.append(value)
-            if self.data_frame[input_column].dtype == "O":
-                uvalue = st.sidebar.selectbox("Select a value:", unique_values, index=0)
+            if df[input_column].dtype == "O":
+                unique_values.extend(df[input_column].unique())
+                uvalue = st.sidebar.multiselect("Select value:", unique_values)
                 if uvalue != unique_values[0]:
-                    self.data_frame = self.data_frame[
-                        self.data_frame[input_column] == uvalue
-                    ]
+                    df = df[df[input_column].isin(uvalue)]
             else:
                 uvalue = st.sidebar.slider(
-                    "Select a range:",
-                    float(self.data_frame[input_column].min()),
-                    float(self.data_frame[input_column].max()),
-                    (
-                        float(self.data_frame[input_column].min()),
-                        float(self.data_frame[input_column].max()),
-                    ),
+                    "Select a range of values",
+                    float(df[input_column].min()),
+                    float(df[input_column].max()),
+                    (float(df[input_column].min()), float(df[input_column].max())),
                 )
-                if uvalue != unique_values[0]:
-                    self.data_frame = self.data_frame[
-                        (self.data_frame[input_column] >= uvalue[0])
-                        &
-                        (self.data_frame[input_column] <= uvalue[1])
-                    ]
-                # print(f"==============={uvalue[0]}")
-        self._update_map()
+                df = df[(df[input_column] >= uvalue[0]) & (df[input_column] <= uvalue[1])]
+        return df
 
-    def _aggregate_data(self):
-        column_to_aggregate = st.sidebar.selectbox(
-            "Choose column to aggregate", self.data_frame.columns
+    def _apply_filters(self):
+        self.data_frame = self.filter_dataframe(self.data_frame)
+        st.dataframe(self.data_frame.drop(columns="geometry"))
+        st.download_button(
+        label="Download data as CSV",
+        data=self.data_frame.to_csv().encode("utf-8"),
+        file_name="Streamlit_df.csv",
+        mime="text/csv",
         )
-        aggregation_function = st.sidebar.selectbox(
-            "Choose aggregation function", ["sum", "mean", "count"]
-        )
-        if column_to_aggregate and aggregation_function:
-            if aggregation_function == "sum":
-                aggregated_data = self.data_frame[column_to_aggregate].sum()
-            elif aggregation_function == "mean":
-                aggregated_data = self.data_frame[column_to_aggregate].mean()
-            elif aggregation_function == "count":
-                aggregated_data = self.data_frame[column_to_aggregate].count()
-            st.sidebar.write(
-                f"Aggregated {aggregation_function} of {column_to_aggregate}: {aggregated_data}"
-            )
 
-    def _update_map(self):
-        self._display_data()
-        self.map = folium.Map([0, 0], zoom_start=2)  # Reset the map
-        self._fit_map_to_bounds(self.data_frame.total_bounds)
-        self._add_markers()
-        # folium.LayerControl().add_to(self.map)
-        folium_static(self.map, width=1000)
+    def create_popup_html(self, properties):
+        html = "<div style='max-height: 200px; overflow-y: auto;'>"
+        for key, value in properties.items():
+            html += f"<b>{key}</b>: {value}<br>"
+        return html
+
 
 if __name__ == "__main__":
     GeoDataVisualizer()
-
-
-# options = ["Select column"]
-# unique_values = ["Select value"]
-# for column in data_frame.columns:
-#     options.append(column)
-# input_column = st.selectbox("Choose column:", options)
-# if input_column != options[0]:
-#     for value in data_frame[input_column].unique():
-#         unique_values.append(value)
-#     if data_frame[input_column].dtype == "O":
-#         uvalue = st.selectbox("Select value:", unique_values, index=0)
-#     else:
-#         uvalue = st.slider(
-#             "Select a range of values",
-#             data_frame[input_column].min(),
-#             data_frame[input_column].max(),
-#             (data_frame[input_column].min(), data_frame[input_column].max()),
-#         )
-#     if uvalue != unique_values[0]:
-#         data_frame = data_frame[data_frame[input_column] == uvalue]
