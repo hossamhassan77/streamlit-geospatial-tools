@@ -6,7 +6,7 @@ import folium
 from streamlit_folium import folium_static
 from folium.plugins import MarkerCluster
 
-class GeoDataVisualizer:
+class GeoDataManipulator:
     def __init__(self):
         self.map = folium.Map([0, 0], zoom_start=2)
         self.marker_cluster = MarkerCluster().add_to(self.map)
@@ -209,4 +209,4 @@ class GeoDataVisualizer:
 
 
 if __name__ == "__main__":
-    GeoDataVisualizer()
+    GeoDataManipulator()
