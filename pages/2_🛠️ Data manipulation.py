@@ -94,7 +94,7 @@ class GeoDataManipulator:
         self._add_markers()
         folium.LayerControl().add_to(self.map)
 
-        folium_static(self.map, width=1000)
+        # folium_static(self.map, width=1000)
 
     def _select_lat_long_columns(self):
         col1, col2, _, _ = st.columns(4)
@@ -131,7 +131,7 @@ class GeoDataManipulator:
         self._apply_filters()
         self._fit_map_to_bounds(self.data_frame.total_bounds)
         self._add_geojson_layer(json_data_frame, layer_name)
-        folium_static(self.map, width=1000)
+        # folium_static(self.map, width=1000)
 
     def _fit_map_to_bounds(self, bounds):
         self.map.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
@@ -194,13 +194,6 @@ class GeoDataManipulator:
 
     def _apply_filters(self):
         self.data_frame = self.filter_dataframe(self.data_frame)
-        st.dataframe(self.data_frame.drop(columns="geometry"))
-        st.download_button(
-        label="Download data as CSV",
-        data=self.data_frame.to_csv().encode("utf-8"),
-        file_name="Streamlit_df.csv",
-        mime="text/csv",
-        )
 
     def create_popup_html(self, properties):
         html = "<div style='max-height: 200px; overflow-y: auto;'>"
@@ -208,6 +201,23 @@ class GeoDataManipulator:
             html += f"<b>{key}</b>: {value}<br>"
         return html
 
+    def _display_layout(self):
+        col1, col2 = st.columns([1, 1])  # Create two columns with equal width
+
+        with col1:
+            st.markdown("## Map")
+            folium_static(self.map, width=700, height=500)
+
+        with col2:
+            st.markdown("## DataFrame")
+            st.dataframe(self.data_frame.drop(columns="geometry"))
+            st.download_button(
+                label="Download data as CSV",
+                data=self.data_frame.to_csv().encode("utf-8"),
+                file_name="Streamlit_df.csv",
+                mime="text/csv",
+            )
 
 if __name__ == "__main__":
-    GeoDataManipulator()
+    app = GeoDataManipulator()
+    app._display_layout()
