@@ -31,8 +31,13 @@ st.write(
     """
     ### 💻 Used technology:
     - Streamlit.
+    - GeoServer.
+    - PostGIS.
+    - GDAL.
+    - Pyproj.
     - Pandas.
     - Geopandas.
+    - Sqlalchemy.
     - Folium.
     """
 )
