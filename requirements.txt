@@ -9,6 +9,7 @@ bqplot==0.12.43
 branca==0.7.2
 cachetools==5.3.3
 certifi==2024.6.2
+cffi==2.0.0
 charset-normalizer==3.3.2
 click==8.1.7
 click-plugins==1.1.1
@@ -17,9 +18,11 @@ colorama==0.4.6
 colour==0.1.5
 comm==0.2.2
 contourpy==1.2.1
+cryptography==46.0.7
 cycler==0.12.1
 debugpy==1.8.1
 decorator==5.1.1
+dotenv==0.9.9
 duckdb==1.0.0
 earthengine-api==0.1.405
 eerepr==0.0.4
@@ -35,6 +38,7 @@ fonttools==4.53.0
 future==1.0.0
 gdown==5.2.0
 geemap==0.32.1
+GeoAlchemy2==0.17.1
 geocoder==1.38.1
 geojson==3.1.0
 geopandas==0.14.4
@@ -49,6 +53,7 @@ google-cloud-storage==2.16.0
 google-crc32c==1.5.0
 google-resumable-media==2.7.0
 googleapis-common-protos==1.63.1
+greenlet==3.2.4
 httplib2==0.22.0
 idna==3.7
 importlib_metadata==7.1.0
@@ -75,6 +80,7 @@ MarkupSafe==2.1.5
 matplotlib==3.9.0
 matplotlib-inline==0.1.7
 mdurl==0.1.2
+narwhals==2.19.0
 nest-asyncio==1.6.0
 numpy==1.26.4
 openpyxl==3.1.4
@@ -90,10 +96,12 @@ prompt_toolkit==3.0.46
 proto-plus==1.23.0
 protobuf==3.20.3
 psutil==5.9.8
+psycopg2==2.9.11
 pure-eval==0.2.2
 pyarrow==16.1.0
 pyasn1==0.6.0
 pyasn1_modules==0.4.0
+pycparser==2.23
 pydeck==0.9.1
 Pygments==2.18.0
 Pympler==1.0.1
@@ -107,6 +115,7 @@ pystac-client==0.8.2
 python-box==7.1.1
 python-calamine==0.2.0
 python-dateutil==2.9.0.post0
+python-dotenv==1.2.1
 pytz==2024.1
 pywin32==306
 PyYAML==6.0.1
@@ -125,10 +134,11 @@ six==1.16.0
 smmap==5.0.1
 snuggs==1.4.7
 soupsieve==2.5
+SQLAlchemy==2.0.49
 stack-data==0.6.3
-streamlit==1.12.0
+streamlit==1.50.0
 streamlit-bokeh-events==0.1.2
-streamlit-folium==0.4.0
+streamlit-folium==0.25.3
 tenacity==8.3.0
 toml==0.10.2
 toolz==0.12.1
