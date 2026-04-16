@@ -5,3 +5,5 @@ summary.txt
 test.ipynb
 plan.txt
 .env
+/streamvenv/
+/pages/
