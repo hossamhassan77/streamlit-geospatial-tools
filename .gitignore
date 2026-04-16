@@ -7,3 +7,4 @@ plan.txt
 .env
 /streamvenv/
 /pages/
+/__pycache__/
