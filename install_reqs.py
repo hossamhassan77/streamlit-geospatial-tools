@@ -1,23 +1,16 @@
+"""Install the project requirements with the active Python interpreter."""
+
 import subprocess
 import sys
 
-with open("requirements.txt") as f:
-    packages = [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
-failed = []
-
-for package in packages:
+def main() -> int:
     result = subprocess.run(
-        [sys.executable, "-m", "pip", "install", package],
-        capture_output=True, text=True
+        [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"],
+        check=False,
     )
-    if result.returncode != 0:
-        print(f"❌ FAILED: {package}")
-        failed.append(package)
-    else:
-        print(f"✅ OK: {package}")
+    return result.returncode
 
-if failed:
-    print("\n--- Failed packages ---")
-    for p in failed:
-        print(f"  {p}")
+
+if __name__ == "__main__":
+    raise SystemExit(main())
