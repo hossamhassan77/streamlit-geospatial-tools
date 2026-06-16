@@ -1,50 +1,72 @@
 # Streamlit Geospatial Tools
 
-This branch of the `streamlit-geospatial-tools` repository focuses on enhancing geospatial analysis tools using Streamlit. It provides an intuitive interface for visualizing, analyzing, and working with spatial data.
+An interactive Streamlit application for exploring vector and raster geospatial data.
 
 ## Features
 
-- **Streamlit Integration**: Build interactive and user-friendly geospatial applications with Streamlit.
-- **Geospatial Visualizations**: Use tools such as Leaflet, Folium, and Pydeck for dynamic map visualizations.
-- **Data Upload & Processing**: Upload, process, and visualize geospatial data formats like GeoJSON, Shapefiles, and CSV.
-- **Custom Tooling**: Includes custom-built tools for spatial data analysis and exploration.
+- Load bundled datasets, uploaded files, or public URLs.
+- Read CSV, XLSX, GeoJSON, GeoPackage, KML, and zipped Shapefiles.
+- Detect latitude and longitude columns and convert tables to point layers.
+- Display points, lines, and polygons on Folium maps.
+- Filter categorical, Boolean, date, and numeric attributes.
+- Export clean CSV files without internal geometry or index columns.
+- Inspect GeoTIFF metadata, bands, statistics, previews, and histograms.
+- Calculate geometry measurements, create metric buffers, and dissolve features.
+- Configure PostgreSQL/PostGIS lazily through environment variables.
+
+## Requirements
+
+- Python 3.10 or newer
+- A C-compatible geospatial Python environment supported by GeoPandas and Rasterio
+
+Do not commit or reuse the included `streamvenv` directory. Virtual environments contain
+machine-specific interpreter paths and should be recreated on every computer.
 
 ## Installation
 
-To get started with this branch, clone the repository and install the required dependencies:
-
-```bash
+```powershell
 git clone https://github.com/hossamhassan77/streamlit-geospatial-tools.git
 cd streamlit-geospatial-tools
-git checkout <branch_name>
-pip install -r requirements.txt
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-## Usage
+Copy `.env.example` to `.env` only when PostGIS or GeoServer settings are needed.
 
-To run the Streamlit app, use the following command:
+## Run
 
-```bash
-streamlit run app.py
+```powershell
+streamlit run Home.py
 ```
 
-Once the server is running, you can access the application in your browser at `http://localhost:8501`.
+Open `http://localhost:8501` if Streamlit does not open a browser automatically.
 
-## Tools Included
+## Pages
 
-1. **Map Visualizations**: Interactive maps for visualizing spatial data.
-2. **Geospatial Analysis**: Tools for performing spatial queries, distance calculations, and data filtering.
-3. **Data Import/Export**: Support for importing and exporting geospatial data formats like GeoJSON and Shapefiles.
-4. **Customization Options**: Customize map styles, markers, and other UI elements.
+1. **Vector data visualization** maps vector files and coordinate tables.
+2. **Data manipulation** adds robust attribute filtering and filtered export.
+3. **Raster analysis** previews raster bands and reports metadata and statistics.
+4. **Analytical tools** provides measurements, buffers, and dissolve operations.
 
-## Contributing
+## Testing
 
-Feel free to contribute to this project by submitting issues, feature requests, or pull requests.
+```powershell
+python -m unittest discover -s tests -v
+python -m py_compile Home.py app_components.py geospatial_utils.py vector_page.py
+```
 
-### Steps to Contribute
+## Security and Data Handling
 
-1. Fork the repository.
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a pull request.
+- Uploaded archives are checked for path traversal and excessive extracted size.
+- Popup values are HTML-escaped.
+- Database connections are created only when explicitly requested.
+- Uploaded files are processed in temporary directories and removed afterward.
+
+## Limitations
+
+- KML support depends on the GDAL/Fiona build installed on the host.
+- Folium basemaps require internet access, although bundled datasets can load offline.
+- Very large point layers are capped at 5,000 rendered markers to protect browser performance.
+- Global buffer distances are approximate because buffering requires a projected CRS.
