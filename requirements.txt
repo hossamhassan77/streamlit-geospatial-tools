@@ -10,7 +10,7 @@ pyproj>=3.6,<4
 openpyxl>=3.1,<4
 
 # Mapping
-folium>=0.16,<1
+folium==0.19.2
 streamlit-folium>=0.20,<1
 
 # Raster data
